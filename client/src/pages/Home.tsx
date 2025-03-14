@@ -28,6 +28,8 @@ const Home = () => {
   });
 
   const handleNewCatRequest = () => {
+    // Reset favorite state when requesting a new cat
+    setIsFavorite(false);
     newCatMutation.mutate();
   };
 
