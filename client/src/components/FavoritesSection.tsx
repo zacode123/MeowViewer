@@ -13,6 +13,9 @@ interface FavoritesSectionProps {
 const FavoritesSection = ({ catImage, isFavorite }: FavoritesSectionProps) => {
   const [favorites, setFavorites] = useState<CatImage[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState<string | null>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   // Load favorites from localStorage on component mount
   useEffect(() => {
