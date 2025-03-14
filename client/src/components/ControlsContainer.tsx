@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { RefreshCw, Share2, Heart, Loader2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { RefreshCw, Share2, Heart, Loader2, X } from "lucide-react";
+import { BsWhatsapp, BsFacebook, BsTwitterX, BsLink45Deg } from "react-icons/bs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { CatImage } from "@shared/schema";
@@ -8,45 +9,44 @@ interface ControlsContainerProps {
   onNewCat: () => void;
   isLoading: boolean;
   catImage?: CatImage;
+  onFavoriteChange?: (isFavorite: boolean) => void;
 }
 
-const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerProps) => {
+const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: ControlsContainerProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  const handleShare = () => {
-    if (!catImage) {
-      toast({
-        title: "No image to share",
-        description: "Please wait for an image to load before sharing.",
-        variant: "destructive",
-      });
-      return;
+  
+  // Check if current image is in favorites
+  useEffect(() => {
+    if (!catImage) return;
+    
+    // Check localStorage for this cat ID
+    const storedFavorites = localStorage.getItem('meowviewer-favorites');
+    if (storedFavorites) {
+      try {
+        const favorites = JSON.parse(storedFavorites) as CatImage[];
+        const isInFavorites = favorites.some(fav => fav.id === catImage.id);
+        setIsFavorite(isInFavorites);
+      } catch (error) {
+        console.error('Error parsing favorites from localStorage:', error);
+      }
     }
+  }, [catImage]);
 
-    // If Web Share API is available, use it
-    if (navigator.share) {
-      navigator.share({
-        title: "Check out this cat from MeowViewer!",
-        text: "I found this adorable cat on MeowViewer!",
-        url: catImage.url,
-      })
-        .then(() => {
-          toast({
-            title: "Shared successfully!",
-            description: "The cat image has been shared.",
-          });
-        })
-        .catch((error) => {
-          console.error("Error sharing:", error);
-          // Fallback to clipboard if sharing fails
-          handleCopyToClipboard();
-        });
-    } else {
-      // Fallback for browsers that don't support Web Share API
-      handleCopyToClipboard();
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
+        setIsShareMenuOpen(false);
+      }
     }
-  };
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleCopyToClipboard = () => {
     if (!catImage) return;
@@ -57,6 +57,7 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
           title: "Copied to clipboard!",
           description: "The cat image URL has been copied to your clipboard.",
         });
+        setIsShareMenuOpen(false);
       })
       .catch((err) => {
         console.error("Failed to copy: ", err);
@@ -78,7 +79,37 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
       return;
     }
     
-    setIsFavorite(!isFavorite);
+    const newFavoriteState = !isFavorite;
+    setIsFavorite(newFavoriteState);
+
+    // Update local storage
+    try {
+      const storedFavorites = localStorage.getItem('meowviewer-favorites');
+      let favorites: CatImage[] = [];
+      
+      if (storedFavorites) {
+        favorites = JSON.parse(storedFavorites);
+      }
+
+      if (newFavoriteState) {
+        // Add to favorites if not already present
+        if (!favorites.some(fav => fav.id === catImage.id)) {
+          favorites.push(catImage);
+        }
+      } else {
+        // Remove from favorites
+        favorites = favorites.filter(fav => fav.id !== catImage.id);
+      }
+
+      localStorage.setItem('meowviewer-favorites', JSON.stringify(favorites));
+    } catch (error) {
+      console.error('Error updating favorites in localStorage:', error);
+    }
+    
+    // Call the callback function if provided
+    if (onFavoriteChange) {
+      onFavoriteChange(newFavoriteState);
+    }
     
     toast({
       title: isFavorite ? "Removed from favorites" : "Added to favorites",
@@ -86,6 +117,43 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
         ? "The cat image has been removed from your favorites." 
         : "The cat image has been added to your favorites!",
     });
+  };
+
+  const shareViaWhatsapp = () => {
+    if (!catImage) return;
+    
+    const text = "Check out this adorable cat from MeowViewer!";
+    const url = catImage.url;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + url)}`, "_blank");
+    setIsShareMenuOpen(false);
+  };
+
+  const shareViaFacebook = () => {
+    if (!catImage) return;
+    
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catImage.url)}`, "_blank");
+    setIsShareMenuOpen(false);
+  };
+
+  const shareViaTwitter = () => {
+    if (!catImage) return;
+    
+    const text = "Check out this adorable cat from MeowViewer!";
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(catImage.url)}`, "_blank");
+    setIsShareMenuOpen(false);
+  };
+
+  const toggleShareMenu = () => {
+    if (!catImage) {
+      toast({
+        title: "No image to share",
+        description: "Please wait for an image to load before sharing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsShareMenuOpen(!isShareMenuOpen);
   };
 
   return (
@@ -97,40 +165,89 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
       >
         {isLoading ? (
           <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading...
           </>
         ) : (
           <>
-            <RefreshCw className="mr-2 h-4 w-4" /> New Cat, Please!
+            <RefreshCw className="mr-2 h-5 w-5" /> New Cat, Please!
           </>
         )}
       </Button>
 
-      <div className="flex gap-4">
+      <div className="flex gap-4 relative">
         <Button 
-          variant="ghost" 
+          variant="outline" 
           size="icon" 
-          className="bg-accent hover:bg-opacity-80 text-secondary p-3 rounded-full shadow transition duration-200"
+          className="bg-primary hover:bg-primary hover:opacity-90 text-white p-3 rounded-full shadow transition duration-200"
           aria-label="Share cat image"
-          onClick={handleShare}
+          onClick={toggleShareMenu}
           disabled={isLoading || !catImage}
         >
-          <Share2 className="h-4 w-4" />
+          <Share2 className="h-5 w-5" />
         </Button>
 
+        {isShareMenuOpen && (
+          <div 
+            ref={shareMenuRef}
+            className="absolute top-12 right-0 z-50 bg-white rounded-lg shadow-lg p-3 w-52 border border-gray-200"
+          >
+            <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
+              <h4 className="font-medium text-secondary">Share via</h4>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7" 
+                onClick={() => setIsShareMenuOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50" 
+                onClick={shareViaWhatsapp}
+              >
+                <BsWhatsapp className="mr-2 h-5 w-5" /> WhatsApp
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50" 
+                onClick={shareViaFacebook}
+              >
+                <BsFacebook className="mr-2 h-5 w-5" /> Facebook
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start text-black hover:bg-gray-100" 
+                onClick={shareViaTwitter}
+              >
+                <BsTwitterX className="mr-2 h-5 w-5" /> Twitter
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-start text-purple-600 hover:text-purple-700 hover:bg-purple-50" 
+                onClick={handleCopyToClipboard}
+              >
+                <BsLink45Deg className="mr-2 h-5 w-5" /> Copy Link
+              </Button>
+            </div>
+          </div>
+        )}
+
         <Button 
-          variant="ghost" 
+          variant="outline" 
           size="icon" 
           className={`${
             isFavorite 
-              ? "bg-primary text-white" 
-              : "bg-accent text-secondary"
-          } hover:bg-opacity-80 p-3 rounded-full shadow transition duration-200`}
+              ? "bg-primary text-white hover:bg-primary hover:opacity-90" 
+              : "bg-primary hover:bg-primary hover:opacity-90 text-white"
+          } p-3 rounded-full shadow transition duration-200`}
           aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           onClick={toggleFavorite}
           disabled={isLoading || !catImage}
         >
-          <Heart className="h-4 w-4" />
+          <Heart className={`h-5 w-5 ${isFavorite ? "fill-white" : ""}`} />
         </Button>
       </div>
     </div>
