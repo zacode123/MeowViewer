@@ -13,7 +13,7 @@ const Header = () => {
               <span className="text-[#FF4081]">Viewer</span>
             </h1>
           </Link>
-          <p className="text-sm md:text-base font-semibold bg-gradient-to-r from-[#FF4081] to-purple-500 text-transparent bg-clip-text">✨ Discover adorable cat images ✨</p>
+          <p className="my-4 text-lg font-semibold bg-gradient-to-r from-[#FF4081] to-purple-500 text-transparent bg-clip-text">✨ Discover adorable cat images ✨</p>
         </div>
       </div>
     </header>
