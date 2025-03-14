@@ -29,22 +29,27 @@ const FavoritesSection = ({ catImage, isFavorite }: FavoritesSectionProps) => {
   useEffect(() => {
     if (!catImage) return;
 
+    // Always fetch the latest from localStorage first
+    const storedFavorites = localStorage.getItem('meowviewer-favorites');
+    let currentFavorites: CatImage[] = [];
+    
+    if (storedFavorites) {
+      try {
+        currentFavorites = JSON.parse(storedFavorites);
+      } catch (error) {
+        console.error('Error parsing favorites from localStorage:', error);
+      }
+    }
+
     if (isFavorite) {
       // Add to favorites if not already present
-      if (!favorites.some(fav => fav.id === catImage.id)) {
-        const updatedFavorites = [...favorites, catImage];
-        setFavorites(updatedFavorites);
-        localStorage.setItem('meowviewer-favorites', JSON.stringify(updatedFavorites));
-      }
-    } else {
-      // Remove from favorites if present
-      const catInFavorites = favorites.find(fav => fav.id === catImage.id);
-      if (catInFavorites) {
-        const updatedFavorites = favorites.filter(fav => fav.id !== catImage.id);
+      if (!currentFavorites.some(fav => fav.id === catImage.id)) {
+        const updatedFavorites = [...currentFavorites, catImage];
         setFavorites(updatedFavorites);
         localStorage.setItem('meowviewer-favorites', JSON.stringify(updatedFavorites));
       }
     }
+    // We're not going to remove items when isFavorite is false - that will be handled by ControlsContainer
   }, [isFavorite, catImage]);
 
   const removeFavorite = (id: string) => {

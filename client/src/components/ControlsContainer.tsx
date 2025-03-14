@@ -18,22 +18,25 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   
-  // Check if current image is in favorites
+  // Sync isFavorite with parent component when it changes
   useEffect(() => {
     if (!catImage) return;
-    
-    // Check localStorage for this cat ID
-    const storedFavorites = localStorage.getItem('meowviewer-favorites');
-    if (storedFavorites) {
-      try {
-        const favorites = JSON.parse(storedFavorites) as CatImage[];
-        const isInFavorites = favorites.some(fav => fav.id === catImage.id);
-        setIsFavorite(isInFavorites);
-      } catch (error) {
-        console.error('Error parsing favorites from localStorage:', error);
+    if (onFavoriteChange) {
+      // Check if current image is already in favorites
+      const storedFavorites = localStorage.getItem('meowviewer-favorites');
+      if (storedFavorites) {
+        try {
+          const favorites = JSON.parse(storedFavorites) as CatImage[];
+          const isInFavorites = favorites.some(fav => fav.id === catImage.id);
+          setIsFavorite(isInFavorites);
+        } catch (error) {
+          console.error('Error parsing favorites from localStorage:', error);
+        }
+      } else {
+        setIsFavorite(false);
       }
     }
-  }, [catImage]);
+  }, [catImage, onFavoriteChange]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {

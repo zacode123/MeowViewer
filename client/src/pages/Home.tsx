@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import ImageContainer from "@/components/ImageContainer";
 import ControlsContainer from "@/components/ControlsContainer";
@@ -21,6 +21,24 @@ const Home = () => {
     refetchOnWindowFocus: false,
   });
 
+  // Check if the current image is already a favorite
+  useEffect(() => {
+    if (!catImage) return;
+    
+    const storedFavorites = localStorage.getItem('meowviewer-favorites');
+    if (storedFavorites) {
+      try {
+        const favorites = JSON.parse(storedFavorites) as CatImage[];
+        const isInFavorites = favorites.some(fav => fav.id === catImage.id);
+        setIsFavorite(isInFavorites);
+      } catch (error) {
+        console.error('Error parsing favorites from localStorage:', error);
+      }
+    } else {
+      setIsFavorite(false);
+    }
+  }, [catImage]);
+
   const newCatMutation = useMutation({
     mutationFn: async () => {
       await refetch();
@@ -28,9 +46,8 @@ const Home = () => {
   });
 
   const handleNewCatRequest = () => {
-    // Reset favorite state when requesting a new cat
-    setIsFavorite(false);
     newCatMutation.mutate();
+    // Note: We don't reset isFavorite here anymore - it will be updated by the useEffect
   };
 
   const handleFavoriteChange = (newFavoriteState: boolean) => {
