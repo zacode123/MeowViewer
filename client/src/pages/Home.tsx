@@ -4,14 +4,15 @@ import ControlsContainer from "@/components/ControlsContainer";
 import FeatureSection from "@/components/FeatureSection";
 import Footer from "@/components/Footer";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { CatImage } from "@shared/schema";
 
 const Home = () => {
   const {
     data: catImage,
-    isLoading,
+    isLoading: queryLoading,
     error,
     refetch
-  } = useQuery({
+  } = useQuery<CatImage>({
     queryKey: ['/api/cat'],
     refetchOnWindowFocus: false,
   });
@@ -26,6 +27,8 @@ const Home = () => {
     newCatMutation.mutate();
   };
 
+  const loadingState = queryLoading || newCatMutation.isPending;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -33,12 +36,13 @@ const Home = () => {
         <div className="max-w-3xl mx-auto">
           <ImageContainer 
             catImage={catImage} 
-            isLoading={isLoading || newCatMutation.isPending} 
+            isLoading={loadingState} 
             hasError={!!error} 
           />
           <ControlsContainer 
             onNewCat={handleNewCatRequest} 
-            isLoading={isLoading || newCatMutation.isPending} 
+            isLoading={loadingState}
+            catImage={catImage}
           />
           <FeatureSection />
         </div>
