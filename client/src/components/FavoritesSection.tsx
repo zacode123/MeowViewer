@@ -121,7 +121,7 @@ const FavoritesSection = ({ catImage, isFavorite }: FavoritesSectionProps) => {
                 {shareMenuOpen === favorite.id && (
                   <div 
                     ref={shareMenuRef}
-                    className="absolute top-8 right-0 z-50 bg-white rounded-lg shadow-lg p-3 w-52 border border-gray-200"
+                    className="absolute top-8 left-0 z-50 bg-white rounded-lg shadow-lg p-3 w-52 border border-gray-200"
                   >
                     <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
                       <h4 className="font-medium text-[#FF4081]">Share via</h4>
