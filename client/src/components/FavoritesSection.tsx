@@ -1,9 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { CatImage } from '@shared/schema';
-import { X, Heart, Share2 } from 'lucide-react';
+import { X, Heart, Share2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BsWhatsapp, BsFacebook, BsTwitterX, BsLink45Deg } from "react-icons/bs";
 import { useToast } from '@/hooks/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface FavoritesSectionProps {
   catImage?: CatImage;
@@ -102,22 +108,46 @@ const FavoritesSection = ({ catImage, isFavorite }: FavoritesSectionProps) => {
                 >
                   <X className="h-3 w-3" />
                 </Button>
-                <Button
-                  size="icon"
-                  className="h-6 w-6 bg-[#FF4081] hover:bg-[#FF4081]/90 text-white rounded-full p-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigator.clipboard.writeText(favorite.url)
-                      .then(() => {
-                        toast({
-                          title: "Copied to clipboard!",
-                          description: "The cat image URL has been copied to your clipboard.",
-                        });
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      size="icon"
+                      className="h-6 w-6 bg-[#FF4081] hover:bg-[#FF4081]/90 text-white rounded-full p-1"
+                    >
+                      <Share2 className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(`https://api.whatsapp.com/send?text=Check out this cute cat! ${favorite.url}`, '_blank');
+                    }}>
+                      <BsWhatsapp /> WhatsApp
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(`https://www.facebook.com/sharer/sharer.php?u=${favorite.url}`, '_blank');
+                    }}>
+                      <BsFacebook /> Facebook
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(`https://twitter.com/intent/tweet?url=${favorite.url}&text=Check out this cute cat!`, '_blank');
+                    }}>
+                      <BsTwitterX /> Twitter
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(favorite.url);
+                      toast({
+                        title: "Copied to clipboard!",
+                        description: "The cat image URL has been copied to your clipboard.",
                       });
-                  }}
-                >
-                  <Share2 className="h-3 w-3" />
-                </Button>
+                    }}>
+                      <BsLink45Deg /> Copy Link
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           ))}
