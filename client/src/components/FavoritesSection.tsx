@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CatImage } from '@shared/schema';
-import { X } from 'lucide-react';
+import { X, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface FavoritesSectionProps {
@@ -63,10 +63,11 @@ const FavoritesSection = ({ catImage, isFavorite }: FavoritesSectionProps) => {
         className="flex justify-between items-center cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <h2 className="text-xl font-bold text-secondary">
+        <h2 className="text-xl font-bold text-[#FF4081] flex items-center">
+          <Heart className="mr-2 h-5 w-5 fill-[#FF4081] text-[#FF4081]" /> 
           Favorite Cats ({favorites.length})
         </h2>
-        <button className="text-secondary hover:text-primary">
+        <button className="text-[#FF4081] hover:text-[#FF4081]/80 font-medium">
           {isExpanded ? 'Hide' : 'Show'}
         </button>
       </div>
@@ -78,12 +79,11 @@ const FavoritesSection = ({ catImage, isFavorite }: FavoritesSectionProps) => {
               <img 
                 src={favorite.url} 
                 alt="Favorite cat" 
-                className="w-full h-32 object-cover rounded-[8px]"
+                className="w-full h-32 object-cover rounded-[8px] border border-gray-100"
               />
               <Button
-                variant="destructive"
                 size="icon"
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 bg-[#FF4081] hover:bg-[#FF4081]/90 text-white rounded-full p-1"
                 onClick={(e) => {
                   e.stopPropagation();
                   removeFavorite(favorite.id);

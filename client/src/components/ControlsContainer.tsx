@@ -161,16 +161,14 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
       <Button
         onClick={onNewCat}
         disabled={isLoading}
-        className="bg-primary hover:bg-opacity-90 text-white font-nunito font-bold py-3 px-6 rounded-[12px] shadow transition duration-200 flex items-center justify-center min-w-[180px]"
+        className="bg-[#FF4081] hover:bg-[#FF4081]/90 text-white font-nunito font-bold py-3 px-6 rounded-[12px] shadow transition duration-200 flex items-center justify-center min-w-[180px]"
       >
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading...
           </>
         ) : (
-          <>
-            <RefreshCw className="mr-2 h-5 w-5" /> New Cat, Please!
-          </>
+          <> New Cat, Please! </>
         )}
       </Button>
 
@@ -178,7 +176,7 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
         <Button 
           variant="outline" 
           size="icon" 
-          className="bg-primary hover:bg-primary hover:opacity-90 text-white p-3 rounded-full shadow transition duration-200"
+          className="bg-[#FF4081] hover:bg-[#FF4081]/90 text-white p-3 rounded-full shadow transition duration-200"
           aria-label="Share cat image"
           onClick={toggleShareMenu}
           disabled={isLoading || !catImage}
@@ -192,11 +190,11 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
             className="absolute top-12 right-0 z-50 bg-white rounded-lg shadow-lg p-3 w-52 border border-gray-200"
           >
             <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
-              <h4 className="font-medium text-secondary">Share via</h4>
+              <h4 className="font-medium text-[#FF4081]">Share via</h4>
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-7 w-7" 
+                className="h-7 w-7 text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50" 
                 onClick={() => setIsShareMenuOpen(false)}
               >
                 <X className="h-4 w-4" />
@@ -226,7 +224,7 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
               </Button>
               <Button 
                 variant="ghost" 
-                className="w-full justify-start text-purple-600 hover:text-purple-700 hover:bg-purple-50" 
+                className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50" 
                 onClick={handleCopyToClipboard}
               >
                 <BsLink45Deg className="mr-2 h-5 w-5" /> Copy Link
@@ -238,11 +236,10 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
         <Button 
           variant="outline" 
           size="icon" 
-          className={`${
-            isFavorite 
-              ? "bg-primary text-white hover:bg-primary hover:opacity-90" 
-              : "bg-primary hover:bg-primary hover:opacity-90 text-white"
-          } p-3 rounded-full shadow transition duration-200`}
+          className={`
+            bg-[#FF4081] hover:bg-[#FF4081]/90 text-white 
+            p-3 rounded-full shadow transition duration-200
+          `}
           aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           onClick={toggleFavorite}
           disabled={isLoading || !catImage}
