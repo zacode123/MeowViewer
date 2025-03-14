@@ -184,10 +184,7 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
           onClick={toggleShareMenu}
           disabled={isLoading || !catImage}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5">
-            <path d="M17.5,7L17,7.5L14,6.75L14,3.5L14.5,3L17.5,5L22,3.5L22,7.25L17.5,7M13.26,21.18L8.26,11.54L6.25,14.53L5.75,14.29L6.87,9.33L11.87,18.97L13.89,16L14.38,16.24L13.26,21.18M21.5,21L16.5,11.37L14.5,14.36L14,14.12L15.12,9.16L20.13,18.8L22.13,15.83L22.62,16.07L21.5,21M2.62,13.62C2.62,11.59 4.09,9.37 6.12,9.37C8.15,9.37 10.37,11.59 10.37,13.62C10.37,15.66 8.15,17.88 6.12,17.88C4.09,17.88 2.62,15.66 2.62,13.62Z"
-            fill="white"/>
-          </svg>
+          <Share2 className="h-5 w-5" />
         </Button>
 
         {isShareMenuOpen && (
