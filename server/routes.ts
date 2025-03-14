@@ -7,7 +7,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Cat API route
   app.get("/api/cat", async (_req, res) => {
     try {
-      const response = await axios.get("https://api.thecatapi.com/v1/images/search");
+      // Request a medium sized image with consistent size
+      const response = await axios.get("https://api.thecatapi.com/v1/images/search", {
+        params: {
+          size: "med",     // Medium sized images
+          has_breeds: 0,   // Don't need breeds info
+          mime_types: "jpg,png" // Only get jpg and png images
+        }
+      });
       const catData = response.data[0];
       
       const catImage = {

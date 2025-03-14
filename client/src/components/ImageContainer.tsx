@@ -27,13 +27,20 @@ const ImageContainer = ({ catImage, isLoading, hasError }: ImageContainerProps) 
           </div>
         )}
 
-        <div className="rounded-[12px] overflow-hidden flex items-center justify-center bg-gray-50 min-h-[300px] md:min-h-[400px]">
+        <div className="rounded-[12px] overflow-hidden flex items-center justify-center bg-gray-50 h-[300px] md:h-[400px]">
           {catImage && (
-            <img
-              src={catImage.url}
-              alt="Random cat image"
-              className="w-full h-auto object-contain animate-fadeIn"
-            />
+            <div className="w-full h-full flex items-center justify-center p-4">
+              <img
+                src={catImage.url}
+                alt="Random cat image"
+                className="max-w-full max-h-full object-contain animate-fadeIn rounded-md"
+                style={{ 
+                  width: "auto", 
+                  height: "auto",
+                  boxShadow: "0 4px 8px rgba(0,0,0,0.1)"
+                }}
+              />
+            </div>
           )}
         </div>
       </div>
