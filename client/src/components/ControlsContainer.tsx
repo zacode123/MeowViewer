@@ -82,10 +82,6 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
       return;
     }
     
-    const newFavoriteState = !isFavorite;
-    setIsFavorite(newFavoriteState);
-
-    // Update local storage
     try {
       const storedFavorites = localStorage.getItem('meowviewer-favorites');
       let favorites: CatImage[] = [];
@@ -94,15 +90,20 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
         favorites = JSON.parse(storedFavorites);
       }
 
+      const isCurrentlyFavorite = favorites.some(fav => fav.id === catImage.id);
+      const newFavoriteState = !isCurrentlyFavorite;
+      
       if (newFavoriteState) {
         // Add to favorites if not already present
-        if (!favorites.some(fav => fav.id === catImage.id)) {
+        if (!isCurrentlyFavorite) {
           favorites.push(catImage);
         }
       } else {
         // Remove from favorites
         favorites = favorites.filter(fav => fav.id !== catImage.id);
       }
+
+      setIsFavorite(newFavoriteState);
 
       localStorage.setItem('meowviewer-favorites', JSON.stringify(favorites));
     } catch (error) {
