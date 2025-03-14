@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CatImage } from '@shared/schema';
-import { X, Heart } from 'lucide-react';
+import { X, Heart, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BsWhatsapp, BsFacebook, BsTwitterX, BsLink45Deg } from "react-icons/bs";
+import { useToast } from '@/hooks/use-toast';
 
 interface FavoritesSectionProps {
   catImage?: CatImage;

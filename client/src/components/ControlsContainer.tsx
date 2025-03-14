@@ -115,10 +115,10 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
     }
     
     toast({
-      title: isFavorite ? "Removed from favorites" : "Added to favorites",
-      description: isFavorite 
-        ? "The cat image has been removed from your favorites." 
-        : "The cat image has been added to your favorites!",
+      title: newFavoriteState ? "Added to favorites" : "Removed from favorites",
+      description: newFavoriteState 
+        ? "The cat image has been added to your favorites!" 
+        : "The cat image has been removed from your favorites.",
     });
   };
 
