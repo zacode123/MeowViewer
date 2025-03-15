@@ -103,56 +103,112 @@ const SharePreviewDialog = ({
   onShare: (platform: 'whatsapp' | 'facebook' | 'twitter' | 'copy') => void;
   isSharing: boolean;
 }) => {
+  const [isImageLoading, setIsImageLoading] = useState(true);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen && favorite) {
+      setIsImageLoading(true);
+      const loadImage = async () => {
+        try {
+          // Use our proxy to avoid CORS issues
+          const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(favorite.url)}`;
+          const response = await fetch(proxyUrl);
+          const blob = await response.blob();
+          const objectUrl = URL.createObjectURL(blob);
+          setPreviewImage(objectUrl);
+          setIsImageLoading(false);
+        } catch (error) {
+          console.error('Error loading preview image:', error);
+          setIsImageLoading(false);
+        }
+      };
+      loadImage();
+    } else {
+      // Cleanup when dialog closes
+      if (previewImage) {
+        URL.revokeObjectURL(previewImage);
+      }
+      setPreviewImage(null);
+    }
+  }, [isOpen, favorite]);
+
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Share this adorable cat</DialogTitle>
+      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-white rounded-xl">
+        <DialogHeader className="p-6 pb-0">
+          <DialogTitle className="text-xl font-bold text-[#FF4081]">Share this adorable cat</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
-          <div className="relative aspect-square w-full overflow-hidden rounded-lg">
-            <img 
-              src={favorite.url} 
-              alt="Cat to share" 
-              className="object-cover w-full h-full"
-            />
+        <div className="p-6">
+          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 mb-6">
+            {isImageLoading ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-[#FF4081]" />
+              </div>
+            ) : previewImage ? (
+              <img 
+                src={previewImage}
+                alt="Cat to share" 
+                className="object-cover w-full h-full transition-opacity duration-200"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                Failed to load preview
+              </div>
+            )}
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-3">
             <Button
               variant="outline"
-              className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
+              className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50 p-4"
               onClick={() => onShare('whatsapp')}
-              disabled={isSharing}
+              disabled={isSharing || isImageLoading}
             >
-              <BsWhatsapp className="mr-2 h-5 w-5" /> Share to WhatsApp
+              <BsWhatsapp className="mr-2 h-5 w-5" /> 
+              <div className="flex flex-col items-start">
+                <span className="font-semibold">WhatsApp</span>
+                <span className="text-xs text-gray-500">Share via WhatsApp</span>
+              </div>
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-4"
               onClick={() => onShare('facebook')}
-              disabled={isSharing}
+              disabled={isSharing || isImageLoading}
             >
-              <BsFacebook className="mr-2 h-5 w-5" /> Share to Facebook
+              <BsFacebook className="mr-2 h-5 w-5" /> 
+              <div className="flex flex-col items-start">
+                <span className="font-semibold">Facebook</span>
+                <span className="text-xs text-gray-500">Share on Facebook</span>
+              </div>
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-start text-black hover:bg-gray-100"
+              className="w-full justify-start text-black hover:bg-gray-100 p-4"
               onClick={() => onShare('twitter')}
-              disabled={isSharing}
+              disabled={isSharing || isImageLoading}
             >
-              <BsTwitterX className="mr-2 h-5 w-5" /> Share to Twitter
+              <BsTwitterX className="mr-2 h-5 w-5" /> 
+              <div className="flex flex-col items-start">
+                <span className="font-semibold">Twitter</span>
+                <span className="text-xs text-gray-500">Share on Twitter</span>
+              </div>
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
+              className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50 p-4"
               onClick={() => onShare('copy')}
-              disabled={isSharing}
+              disabled={isSharing || isImageLoading}
             >
-              <BsLink45Deg className="mr-2 h-5 w-5" /> Copy to Clipboard
+              <BsLink45Deg className="mr-2 h-5 w-5" /> 
+              <div className="flex flex-col items-start">
+                <span className="font-semibold">Copy</span>
+                <span className="text-xs text-gray-500">Copy to clipboard</span>
+              </div>
             </Button>
           </div>
           {isSharing && (
-            <div className="flex items-center justify-center text-sm text-gray-500">
+            <div className="mt-4 flex items-center justify-center text-sm text-gray-500">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Preparing to share...
             </div>
@@ -206,12 +262,21 @@ const FavoritesSectionDisplay = () => {
       // Platform-specific sharing as fallback
       switch (platform) {
         case 'whatsapp':
+          const whatsappFormData = new FormData();
+          whatsappFormData.append('text', shareData.text);
+          whatsappFormData.append('image', file);
+          // Note: WhatsApp Web API doesn't directly support file uploads
+          // We'll use the URL as fallback
           window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareData.text}\n${favorite.url}`)}`, '_blank');
           break;
         case 'facebook':
+          // Facebook requires a server-side implementation to handle file uploads
+          // Fallback to URL sharing
           window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(favorite.url)}&quote=${encodeURIComponent(shareData.text)}`, '_blank');
           break;
         case 'twitter':
+          // Twitter API v2 requires authentication
+          // Fallback to URL sharing
           window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareData.text}\n${favorite.url}`)}`, '_blank');
           break;
         case 'copy':
