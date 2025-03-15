@@ -46,8 +46,10 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
     };
   }, []);
 
+  const [sharingType, setSharingType] = useState<'native' | 'copy' | 'download' | null>(null);
+  
   const handleShare = async (type: 'native' | 'copy' | 'download') => {
-    setIsSharing(true); // Set isSharing to true before sharing
+    setSharingType(type);
     if (!catImage) return;
 
     if (type === 'download') {
@@ -118,7 +120,7 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
         variant: "destructive",
       });
     } finally {
-      setIsSharing(false); // Ensure isSharing is set to false in the finally block
+      setSharingType(null);
       setIsShareMenuOpen(false);
     }
   };
@@ -228,25 +230,25 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
                 variant="ghost"
                 className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
                 onClick={() => handleShare('native')}
-                disabled={isSharing}
+                disabled={sharingType !== null}
               >
-                {isSharing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Share2 className="mr-2 h-5 w-5" />} Share
+                {sharingType === 'native' ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Share2 className="mr-2 h-5 w-5" />} Share
               </Button>
               <Button
                 variant="ghost"
                 className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
                 onClick={() => handleShare('copy')}
-                disabled={isSharing}
+                disabled={sharingType !== null}
               >
-                {isSharing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <BsLink45Deg className="mr-2 h-5 w-5" />} Copy
+                {sharingType === 'copy' ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <BsLink45Deg className="mr-2 h-5 w-5" />} Copy
               </Button>
               <Button
                 variant="ghost"
                 className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
                 onClick={() => handleShare('download')}
-                disabled={isSharing}
+                disabled={sharingType !== null}
               >
-                {isSharing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />} Download
+                {sharingType === 'download' ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />} Download
               </Button>
             </div>
           </div>
