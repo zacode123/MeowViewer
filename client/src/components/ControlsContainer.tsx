@@ -83,7 +83,7 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
             files: [file],
           });
           setIsShareMenuOpen(false);
-          setIsSharing(false); // Set isSharing to false after native share
+          setIsSharing(false);
           return;
         } catch (error) {
           if (error instanceof Error && error.name !== 'AbortError') {
