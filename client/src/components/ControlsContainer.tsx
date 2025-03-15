@@ -31,25 +31,76 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
     };
   }, []);
 
-  const handleCopyToClipboard = () => {
+  const handleShare = async (type: 'native' | 'copy' | 'download') => {
     if (!catImage) return;
 
-    navigator.clipboard.writeText(catImage.url)
-      .then(() => {
-        toast({
-          title: "Copied to clipboard!",
-          description: "The cat image URL has been copied to your clipboard.",
-        });
-        setIsShareMenuOpen(false);
-      })
-      .catch((err) => {
-        console.error("Failed to copy: ", err);
-        toast({
-          title: "Failed to copy",
-          description: "Could not copy URL to clipboard.",
-          variant: "destructive",
-        });
+    if (type === 'download') {
+      const downloadUrl = `/api/proxy-image?url=${encodeURIComponent(catImage.url)}&download=true`;
+      window.location.href = downloadUrl;
+      setIsShareMenuOpen(false);
+      return;
+    }
+
+    try {
+      const shareUrlResponse = await fetch(`/api/share-url?url=${encodeURIComponent(catImage.url)}`);
+      const { shareUrl } = await shareUrlResponse.json();
+
+      const shareData = {
+        title: 'Check out this adorable cat!',
+        text: 'Check out this adorable cat I found on MeowViewer! 🐱',
+      };
+
+      const { file, blob } = await prepareImageForSharing(catImage.url);
+      if (!file || !blob) {
+        throw new Error('Failed to prepare image');
+      }
+
+      if (type === 'native' && navigator.share && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: shareData.title,
+            text: shareData.text,
+            url: shareUrl,
+            files: [file],
+          });
+          setIsShareMenuOpen(false);
+          return;
+        } catch (error) {
+          if (error instanceof Error && error.name !== 'AbortError') {
+            console.error("Native share failed, falling back:", error);
+            type = 'copy';
+          }
+        }
+      }
+
+      if (type === 'copy') {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              [blob.type]: blob
+            })
+          ]);
+          toast({
+            title: "Copied to clipboard!",
+            description: "The cat image has been copied to your clipboard.",
+          });
+        } catch (clipboardError) {
+          await navigator.clipboard.writeText(`${shareData.text}\n${shareUrl}`);
+          toast({
+            title: "Copied to clipboard!",
+            description: "The cat image URL has been copied to your clipboard (image copying not supported in this browser).",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error sharing:", error);
+      toast({
+        title: "Error sharing",
+        description: "Failed to share the image. Please try again.",
+        variant: "destructive",
       });
+    }
+    setIsShareMenuOpen(false);
   };
 
   const toggleFavorite = () => {
@@ -155,31 +206,24 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
             <div className="space-y-2">
               <Button
                 variant="ghost"
-                className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
-                onClick={shareViaWhatsapp}
+                className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
+                onClick={() => handleShare('native')}
               >
-                <BsWhatsapp className="mr-2 h-5 w-5" /> WhatsApp
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                onClick={shareViaFacebook}
-              >
-                <BsFacebook className="mr-2 h-5 w-5" /> Facebook
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full justify-start text-black hover:bg-gray-100"
-                onClick={shareViaTwitter}
-              >
-                <BsTwitterX className="mr-2 h-5 w-5" /> Twitter
+                <Share2 className="mr-2 h-5 w-5" /> Share
               </Button>
               <Button
                 variant="ghost"
                 className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
-                onClick={handleCopyToClipboard}
+                onClick={() => handleShare('copy')}
               >
-                <BsLink45Deg className="mr-2 h-5 w-5" /> Copy Link
+                <BsLink45Deg className="mr-2 h-5 w-5" /> Copy
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
+                onClick={() => handleShare('download')}
+              >
+                <Download className="mr-2 h-5 w-5" /> Download
               </Button>
             </div>
           </div>
