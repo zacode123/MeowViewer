@@ -241,10 +241,6 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
                 disabled={isSharing}
               >
                 {isSharing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />} Download
-              </Button>50"
-                onClick={() => handleShare('download')}
-              >
-                <Download className="mr-2 h-5 w-5" /> Download
               </Button>
             </div>
           </div>
