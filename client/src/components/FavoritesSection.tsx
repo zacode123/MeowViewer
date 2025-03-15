@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { CatImage } from '@shared/schema';
-import { X, Heart, Share2 } from 'lucide-react';
+import { X, Heart, Share2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BsWhatsapp, BsFacebook, BsTwitterX, BsLink45Deg } from "react-icons/bs";
 import { useToast } from '@/hooks/use-toast';
@@ -73,7 +73,9 @@ export const FavoritesProvider = ({ children }: { children: React.ReactNode }) =
 // Helper function to fetch and prepare image for sharing
 const prepareImageForSharing = async (imageUrl: string): Promise<{file?: File, blob?: Blob}> => {
   try {
-    const response = await fetch(imageUrl);
+    // Use our proxy endpoint
+    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+    const response = await fetch(proxyUrl);
     const blob = await response.blob();
     const file = new File([blob], 'cat.jpg', { type: 'image/jpeg' });
     return { file, blob };
@@ -252,7 +254,7 @@ const FavoritesSectionDisplay = () => {
                   }}
                   disabled={isSharing}
                 >
-                  <Share2 className="h-3 w-3" />
+                  {isSharing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3" />}
                 </Button>
               </div>
               {shareMenuOpen === favorite.id && (
