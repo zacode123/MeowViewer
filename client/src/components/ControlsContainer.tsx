@@ -1,42 +1,22 @@
 import { useState, useRef, useEffect } from "react";
-import { RefreshCw, Share2, Heart, Loader2, X } from "lucide-react";
+import { Share2, Loader2, X } from "lucide-react";
 import { BsWhatsapp, BsFacebook, BsTwitterX, BsLink45Deg } from "react-icons/bs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { CatImage } from "@shared/schema";
+import { useFavorites } from "./FavoritesSection";
 
 interface ControlsContainerProps {
   onNewCat: () => void;
   isLoading: boolean;
   catImage?: CatImage;
-  onFavoriteChange?: (isFavorite: boolean) => void;
 }
 
-const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: ControlsContainerProps) => {
-  const [isFavorite, setIsFavorite] = useState(false);
+const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerProps) => {
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  // Sync isFavorite with parent component when it changes
-  useEffect(() => {
-    if (!catImage) return;
-    if (onFavoriteChange) {
-      // Check if current image is already in favorites
-      const storedFavorites = localStorage.getItem('meowviewer-favorites');
-      if (storedFavorites) {
-        try {
-          const favorites = JSON.parse(storedFavorites) as CatImage[];
-          const isInFavorites = favorites.some(fav => fav.id === catImage.id);
-          setIsFavorite(isInFavorites);
-        } catch (error) {
-          console.error('Error parsing favorites from localStorage:', error);
-        }
-      } else {
-        setIsFavorite(false);
-      }
-    }
-  }, [catImage, onFavoriteChange]);
+  const { isFavorite, addFavorite, removeFavorite } = useFavorites();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -82,56 +62,10 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
       return;
     }
 
-    const newFavoriteState = !isFavorite;
-
-    try {
-      const storedFavorites = localStorage.getItem('meowviewer-favorites');
-      let favorites: CatImage[] = [];
-
-      if (storedFavorites) {
-        favorites = JSON.parse(storedFavorites);
-      }
-
-      if (newFavoriteState) {
-        // Add to favorites if not already present
-        if (!favorites.some(fav => fav.id === catImage.id)) {
-          favorites.push(catImage);
-          localStorage.setItem('meowviewer-favorites', JSON.stringify(favorites));
-          setIsFavorite(true); // Update state immediately after successful storage
-
-          // Call the callback function if provided
-          if (onFavoriteChange) {
-            onFavoriteChange(true);
-          }
-
-          toast({
-            title: "Added to favorites",
-            description: "The cat image has been added to your favorites!",
-          });
-        }
-      } else {
-        // Remove from favorites
-        favorites = favorites.filter(fav => fav.id !== catImage.id);
-        localStorage.setItem('meowviewer-favorites', JSON.stringify(favorites));
-        setIsFavorite(false); // Update state immediately after successful storage
-
-        // Call the callback function if provided
-        if (onFavoriteChange) {
-          onFavoriteChange(false);
-        }
-
-        toast({
-          title: "Removed from favorites",
-          description: "The cat image has been removed from your favorites.",
-        });
-      }
-    } catch (error) {
-      console.error('Error updating favorites in localStorage:', error);
-      toast({
-        title: "Error updating favorites",
-        description: "An error occurred while updating your favorites.",
-        variant: "destructive",
-      });
+    if (isFavorite(catImage.id)) {
+      removeFavorite(catImage.id);
+    } else {
+      addFavorite(catImage);
     }
   };
 
@@ -171,6 +105,8 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
 
     setIsShareMenuOpen(!isShareMenuOpen);
   };
+
+  const currentIsFavorite = catImage ? isFavorite(catImage.id) : false;
 
   return (
     <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
@@ -256,15 +192,15 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
             bg-[#FF4081] hover:bg-[#FF4081]/90 text-white 
             p-3 rounded-full shadow transition duration-200
           `}
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          aria-label={currentIsFavorite ? "Remove from favorites" : "Add to favorites"}
           onClick={toggleFavorite}
           disabled={isLoading || !catImage}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5">
             <path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"
-            fill={isFavorite ? "white" : "none"}
+            fill={currentIsFavorite ? "white" : "none"}
             stroke="white"
-            strokeWidth={isFavorite ? "0" : "2"} />
+            strokeWidth={currentIsFavorite ? "0" : "2"} />
           </svg>
         </Button>
       </div>

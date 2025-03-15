@@ -1,29 +1,31 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { CatImage } from '@shared/schema';
-import { X, Heart, Share2, Check } from 'lucide-react';
+import { X, Heart, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BsWhatsapp, BsFacebook, BsTwitterX, BsLink45Deg } from "react-icons/bs";
 import { useToast } from '@/hooks/use-toast';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
-interface FavoritesSectionProps {
-  catImage?: CatImage;
-  isFavorite: boolean;
-}
+// Create a context for favorites management
+export const FavoritesContext = createContext<{
+  favorites: CatImage[];
+  addFavorite: (cat: CatImage) => void;
+  removeFavorite: (id: string) => void;
+  isFavorite: (id: string) => boolean;
+}>({
+  favorites: [],
+  addFavorite: () => {},
+  removeFavorite: () => {},
+  isFavorite: () => false,
+});
 
-const FavoritesSection = ({ catImage, isFavorite }: FavoritesSectionProps) => {
+// Export the hook for using favorites context
+export const useFavorites = () => useContext(FavoritesContext);
+
+export const FavoritesProvider = ({ children }: { children: React.ReactNode }) => {
   const [favorites, setFavorites] = useState<CatImage[]>([]);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [shareMenuOpen, setShareMenuOpen] = useState<string | null>(null);
-  const shareMenuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Load favorites from localStorage on component mount
+  // Load favorites from localStorage on mount
   useEffect(() => {
     const storedFavorites = localStorage.getItem('meowviewer-favorites');
     if (storedFavorites) {
@@ -36,38 +38,55 @@ const FavoritesSection = ({ catImage, isFavorite }: FavoritesSectionProps) => {
     }
   }, []);
 
-  // Update favorites when a new cat is added/removed
-  useEffect(() => {
-    if (!catImage) return;
-
-    // Always fetch the latest from localStorage first
-    const storedFavorites = localStorage.getItem('meowviewer-favorites');
-    let currentFavorites: CatImage[] = [];
-    
-    if (storedFavorites) {
-      try {
-        currentFavorites = JSON.parse(storedFavorites);
-      } catch (error) {
-        console.error('Error parsing favorites from localStorage:', error);
-      }
+  const addFavorite = (cat: CatImage) => {
+    if (!favorites.some(fav => fav.id === cat.id)) {
+      const newFavorites = [...favorites, cat];
+      setFavorites(newFavorites);
+      localStorage.setItem('meowviewer-favorites', JSON.stringify(newFavorites));
+      toast({
+        title: "Added to favorites",
+        description: "The cat image has been added to your favorites!",
+      });
     }
-
-    if (isFavorite) {
-      // Add to favorites if not already present
-      if (!currentFavorites.some(fav => fav.id === catImage.id)) {
-        const updatedFavorites = [...currentFavorites, catImage];
-        setFavorites(updatedFavorites);
-        localStorage.setItem('meowviewer-favorites', JSON.stringify(updatedFavorites));
-      }
-    }
-    // We're not going to remove items when isFavorite is false - that will be handled by ControlsContainer
-  }, [isFavorite, catImage]);
+  };
 
   const removeFavorite = (id: string) => {
-    const updatedFavorites = favorites.filter(fav => fav.id !== id);
-    setFavorites(updatedFavorites);
-    localStorage.setItem('meowviewer-favorites', JSON.stringify(updatedFavorites));
+    const newFavorites = favorites.filter(fav => fav.id !== id);
+    setFavorites(newFavorites);
+    localStorage.setItem('meowviewer-favorites', JSON.stringify(newFavorites));
+    toast({
+      title: "Removed from favorites",
+      description: "The cat image has been removed from your favorites.",
+    });
   };
+
+  const isFavorite = (id: string) => favorites.some(fav => fav.id === id);
+
+  return (
+    <FavoritesContext.Provider value={{ favorites, addFavorite, removeFavorite, isFavorite }}>
+      {children}
+      <FavoritesSectionDisplay />
+    </FavoritesContext.Provider>
+  );
+};
+
+const FavoritesSectionDisplay = () => {
+  const { favorites, removeFavorite } = useFavorites();
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState<string | null>(null);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
+        setShareMenuOpen(null);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (favorites.length === 0) {
     return null;
@@ -118,74 +137,74 @@ const FavoritesSection = ({ catImage, isFavorite }: FavoritesSectionProps) => {
                 >
                   <Share2 className="h-3 w-3" />
                 </Button>
-                {shareMenuOpen === favorite.id && (
-                  <div 
-                    ref={shareMenuRef}
-                    className="absolute top-8 left-0 z-50 bg-white rounded-lg shadow-lg p-3 w-52 border border-gray-200"
-                  >
-                    <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
-                      <h4 className="font-medium text-[#FF4081]">Share via</h4>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-7 w-7 text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShareMenuOpen(null);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="space-y-2">
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(`https://api.whatsapp.com/send?text=Check out this cute cat! ${favorite.url}`, '_blank');
-                        }}
-                      >
-                        <BsWhatsapp className="mr-2 h-5 w-5" /> WhatsApp
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(`https://www.facebook.com/sharer/sharer.php?u=${favorite.url}`, '_blank');
-                        }}
-                      >
-                        <BsFacebook className="mr-2 h-5 w-5" /> Facebook
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start text-black hover:bg-gray-100" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(`https://twitter.com/intent/tweet?url=${favorite.url}&text=Check out this cute cat!`, '_blank');
-                        }}
-                      >
-                        <BsTwitterX className="mr-2 h-5 w-5" /> Twitter
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigator.clipboard.writeText(favorite.url);
-                          toast({
-                            title: "Copied to clipboard!",
-                            description: "The cat image URL has been copied to your clipboard.",
-                          });
-                        }}
-                      >
-                        <BsLink45Deg className="mr-2 h-5 w-5" /> Copy Link
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </div>
+              {shareMenuOpen === favorite.id && (
+                <div 
+                  ref={shareMenuRef}
+                  className="absolute top-8 left-0 z-50 bg-white rounded-lg shadow-lg p-3 w-52 border border-gray-200"
+                >
+                  <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
+                    <h4 className="font-medium text-[#FF4081]">Share via</h4>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-7 w-7 text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShareMenuOpen(null);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`https://api.whatsapp.com/send?text=Check out this cute cat! ${favorite.url}`, '_blank');
+                      }}
+                    >
+                      <BsWhatsapp className="mr-2 h-5 w-5" /> WhatsApp
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${favorite.url}`, '_blank');
+                      }}
+                    >
+                      <BsFacebook className="mr-2 h-5 w-5" /> Facebook
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-black hover:bg-gray-100" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(`https://twitter.com/intent/tweet?url=${favorite.url}&text=Check out this cute cat!`, '_blank');
+                      }}
+                    >
+                      <BsTwitterX className="mr-2 h-5 w-5" /> Twitter
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigator.clipboard.writeText(favorite.url);
+                        toast({
+                          title: "Copied to clipboard!",
+                          description: "The cat image URL has been copied to your clipboard.",
+                        });
+                      }}
+                    >
+                      <BsLink45Deg className="mr-2 h-5 w-5" /> Copy Link
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -194,4 +213,5 @@ const FavoritesSection = ({ catImage, isFavorite }: FavoritesSectionProps) => {
   );
 };
 
-export default FavoritesSection;
+// Export the FavoritesSectionDisplay component as the default export
+export default FavoritesSectionDisplay;
