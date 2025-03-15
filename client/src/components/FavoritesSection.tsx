@@ -90,27 +90,6 @@ const prepareImageForSharing = async (imageUrl: string): Promise<{file?: File, b
   }
 };
 
-// Helper function to share using the Web Share API
-const shareWithNativeAPI = async (shareData: { title: string; text: string; url: string; file: File }) => {
-  if (navigator.share && navigator.canShare({ files: [shareData.file] })) {
-    try {
-      await navigator.share({
-        title: shareData.title,
-        text: shareData.text,
-        url: shareData.url,
-        files: [shareData.file],
-      });
-      return true;
-    } catch (error) {
-      if (error instanceof Error && error.name !== 'AbortError') {
-        throw error;
-      }
-      return false;
-    }
-  }
-  return false;
-};
-
 const SharePreviewDialog = ({ 
   isOpen, 
   onClose, 
@@ -197,7 +176,6 @@ const FavoritesSectionDisplay = () => {
     const shareData = {
       title: 'Check out this adorable cat!',
       text: 'Check out this adorable cat I found on MeowViewer! 🐱',
-      url: favorite.url
     };
 
     try {
@@ -207,37 +185,36 @@ const FavoritesSectionDisplay = () => {
         throw new Error('Failed to prepare image');
       }
 
-      // Try native sharing first
-      if (platform !== 'copy') {
-        const shared = await shareWithNativeAPI({ ...shareData, file });
-        if (shared) {
+      // Try native sharing first if not copying
+      if (platform !== 'copy' && navigator.share && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: shareData.title,
+            text: shareData.text,
+            files: [file],
+          });
           setSharePreviewOpen(false);
           setIsSharing(false);
           return;
+        } catch (error) {
+          if (error instanceof Error && error.name !== 'AbortError') {
+            throw error;
+          }
         }
       }
 
-      // Create a temporary blob URL for sharing
-      const blobUrl = URL.createObjectURL(blob);
-
       // Platform-specific sharing as fallback
       switch (platform) {
-        case 'whatsapp': {
-          const whatsappText = `${shareData.text}\n${blobUrl}`;
-          window.open(`https://wa.me/?text=${encodeURIComponent(whatsappText)}`, '_blank');
+        case 'whatsapp':
+          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareData.text}\n${favorite.url}`)}`, '_blank');
           break;
-        }
-        case 'facebook': {
-          // Facebook requires an actual URL, can't directly share blob
-          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareData.url)}&quote=${encodeURIComponent(shareData.text)}`, '_blank');
+        case 'facebook':
+          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(favorite.url)}&quote=${encodeURIComponent(shareData.text)}`, '_blank');
           break;
-        }
-        case 'twitter': {
-          const twitterText = `${shareData.text}\n${blobUrl}`;
-          window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(twitterText)}`, '_blank');
+        case 'twitter':
+          window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareData.text}\n${favorite.url}`)}`, '_blank');
           break;
-        }
-        case 'copy': {
+        case 'copy':
           try {
             await navigator.clipboard.write([
               new ClipboardItem({
@@ -249,19 +226,14 @@ const FavoritesSectionDisplay = () => {
               description: "The cat image has been copied to your clipboard.",
             });
           } catch (clipboardError) {
-            // Fall back to copying URL if image copy fails
-            await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
+            await navigator.clipboard.writeText(`${shareData.text}\n${favorite.url}`);
             toast({
               title: "Copied to clipboard!",
               description: "The cat image URL has been copied to your clipboard (image copying not supported in this browser).",
             });
           }
           break;
-        }
       }
-
-      // Clean up the blob URL after a delay
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
     } catch (error) {
       console.error('Error sharing:', error);
       toast({
