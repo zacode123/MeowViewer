@@ -71,7 +71,6 @@ export const FavoritesProvider = ({ children }: { children: React.ReactNode }) =
   return (
     <FavoritesContext.Provider value={{ favorites, addFavorite, removeFavorite, isFavorite }}>
       {children}
-      <FavoritesSectionDisplay />
     </FavoritesContext.Provider>
   );
 };
