@@ -100,7 +100,7 @@ const SharePreviewDialog = ({
   isOpen: boolean; 
   onClose: () => void; 
   favorite: CatImage;
-  onShare: (platform: 'whatsapp' | 'facebook' | 'twitter' | 'copy' | 'download') => void;
+  onShare: (platform: 'native' | 'copy' | 'download') => void;
   isSharing: boolean;
 }) => {
   const [isImageLoading, setIsImageLoading] = useState(true);
@@ -158,38 +158,14 @@ const SharePreviewDialog = ({
           <div className="grid grid-cols-2 gap-3">
             <Button
               variant="outline"
-              className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50 p-4"
-              onClick={() => onShare('whatsapp')}
+              className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50 p-4"
+              onClick={() => onShare('native')}
               disabled={isSharing || isImageLoading}
             >
-              <BsWhatsapp className="mr-2 h-5 w-5" /> 
+              <Share2 className="mr-2 h-5 w-5" /> 
               <div className="flex flex-col items-start">
-                <span className="font-semibold">WhatsApp</span>
-                <span className="text-xs text-gray-500">Share via WhatsApp</span>
-              </div>
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50 p-4"
-              onClick={() => onShare('facebook')}
-              disabled={isSharing || isImageLoading}
-            >
-              <BsFacebook className="mr-2 h-5 w-5" /> 
-              <div className="flex flex-col items-start">
-                <span className="font-semibold">Facebook</span>
-                <span className="text-xs text-gray-500">Share on Facebook</span>
-              </div>
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-black hover:bg-gray-100 p-4"
-              onClick={() => onShare('twitter')}
-              disabled={isSharing || isImageLoading}
-            >
-              <BsTwitterX className="mr-2 h-5 w-5" /> 
-              <div className="flex flex-col items-start">
-                <span className="font-semibold">Twitter</span>
-                <span className="text-xs text-gray-500">Share on Twitter</span>
+                <span className="font-semibold">Share</span>
+                <span className="text-xs text-gray-500">Share via your device</span>
               </div>
             </Button>
             <Button
@@ -234,7 +210,7 @@ const FavoritesSectionDisplay = () => {
   const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
 
-  const handleShare = async (favorite: CatImage, platform: 'whatsapp' | 'facebook' | 'twitter' | 'copy' | 'download') => {
+  const handleShare = async (favorite: CatImage, platform: 'native' | 'copy' | 'download') => {
     setIsSharing(true);
     const shareData = {
       title: 'Check out this adorable cat!',
@@ -261,8 +237,7 @@ const FavoritesSectionDisplay = () => {
         throw new Error('Failed to prepare image');
       }
 
-      // Try native sharing first if not copying
-      if (platform !== 'copy' && navigator.share && navigator.canShare({ files: [file] })) {
+      if (platform === 'native' && navigator.share && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({
             title: shareData.title,
@@ -275,23 +250,15 @@ const FavoritesSectionDisplay = () => {
           return;
         } catch (error) {
           if (error instanceof Error && error.name !== 'AbortError') {
-            throw error;
+            console.error("Native share failed, falling back:", error); //Added logging for debugging.
+            // Fallback to copy if native sharing fails
+            platform = 'copy';
           }
         }
       }
 
-      // Platform-specific sharing as fallback
-      switch (platform) {
-        case 'whatsapp':
-          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareData.text}\n${shareUrl}`)}`, '_blank');
-          break;
-        case 'facebook':
-          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareData.text)}`, '_blank');
-          break;
-        case 'twitter':
-          window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareData.text}\n${shareUrl}`)}`, '_blank');
-          break;
-        case 'copy':
+      // Platform-specific sharing as fallback (only copy remains)
+      if (platform === 'copy') {
           try {
             await navigator.clipboard.write([
               new ClipboardItem({
@@ -309,7 +276,6 @@ const FavoritesSectionDisplay = () => {
               description: "The cat image URL has been copied to your clipboard (image copying not supported in this browser).",
             });
           }
-          break;
       }
     } catch (error) {
       console.error('Error sharing:', error);
