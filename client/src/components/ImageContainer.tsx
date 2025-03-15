@@ -1,7 +1,6 @@
-import { AlertCircle, Loader2 } from "lucide-react";
+
+import { AlertCircle } from "lucide-react";
 import { CatImage } from "@shared/schema";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@radix-ui/react-tooltip";
-import { Info } from "lucide-react";
 
 interface ImageContainerProps {
   catImage: CatImage | undefined;
@@ -51,6 +50,7 @@ const ImageContainer = ({ catImage, isLoading, hasError }: ImageContainerProps) 
             </div>
           </div>
         )}
+
         <div className="rounded-[12px] overflow-hidden flex items-center justify-center bg-gray-50 h-[300px] md:h-[400px] relative">
           {catImage && (
             <div className="w-full h-full flex items-center justify-center p-4">
@@ -67,14 +67,14 @@ const ImageContainer = ({ catImage, isLoading, hasError }: ImageContainerProps) 
             </div>
           )}
         </div>
-      </div>
 
-      <div className="px-[12px] pb-[12px] pt-2">
-        {catImage && catImage.attribution && (
-          <p className="text-sm text-gray-500 italic text-center">
-            {catImage.attribution}
-          </p>
-        )}
+        <div className="px-[12px] pb-[12px] pt-2">
+          {catImage && catImage.attribution && (
+            <p className="text-sm text-gray-500 italic text-center">
+              {catImage.attribution}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
