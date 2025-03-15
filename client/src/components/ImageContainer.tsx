@@ -8,6 +8,30 @@ interface ImageContainerProps {
   hasError: boolean;
 }
 
+const BreedInfo = ({ breed }: { breed: any }) => {
+  if (!breed) return null;
+  return (
+    <div className="mb-4 p-4 bg-white/90 backdrop-blur-sm rounded-[12px] shadow-sm">
+      <h3 className="font-bold text-[#FF4081] text-lg">{breed.name}</h3>
+      {breed.description && (
+        <p className="text-sm text-gray-700 mt-2">{breed.description}</p>
+      )}
+      <div className="flex flex-wrap gap-x-4 mt-2">
+        {breed.temperament && (
+          <p className="text-sm text-gray-600">
+            <span className="font-semibold">Temperament:</span> {breed.temperament}
+          </p>
+        )}
+        {breed.origin && (
+          <p className="text-sm text-gray-600">
+            <span className="font-semibold">Origin:</span> {breed.origin}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const ImageContainer = ({ catImage, isLoading, hasError }: ImageContainerProps) => {
   return (
     <div className="bg-white rounded-[12px] shadow-lg overflow-hidden mb-6">
@@ -51,6 +75,9 @@ const ImageContainer = ({ catImage, isLoading, hasError }: ImageContainerProps) 
           </div>
         )}
 
+        {catImage?.breeds && catImage.breeds[0] && (
+          <BreedInfo breed={catImage.breeds[0]} />
+        )}
         <div className="rounded-[12px] overflow-hidden flex items-center justify-center bg-gray-50 h-[300px] md:h-[400px] relative">
           {catImage && (
             <div className="w-full h-full flex items-center justify-center p-4">
