@@ -70,24 +70,37 @@ export const FavoritesProvider = ({ children }: { children: React.ReactNode }) =
   );
 };
 
-const downloadAndShareImage = async (imageUrl: string, shareData: { title: string; text: string }) => {
+// Helper function to fetch and prepare image for sharing
+const prepareImageForSharing = async (imageUrl: string): Promise<{file?: File, blob?: Blob}> => {
   try {
     const response = await fetch(imageUrl);
     const blob = await response.blob();
     const file = new File([blob], 'cat.jpg', { type: 'image/jpeg' });
+    return { file, blob };
+  } catch (error) {
+    console.error('Error preparing image:', error);
+    throw new Error('Failed to prepare image for sharing');
+  }
+};
 
-    if (navigator.share && navigator.canShare({ files: [file] })) {
+// Helper function to share using the Web Share API
+const shareWithNativeAPI = async (shareData: { title: string; text: string; file: File }) => {
+  if (navigator.share && navigator.canShare({ files: [shareData.file] })) {
+    try {
       await navigator.share({
-        ...shareData,
-        files: [file],
+        title: shareData.title,
+        text: shareData.text,
+        files: [shareData.file],
       });
       return true;
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        throw error;
+      }
+      return false;
     }
-    return false;
-  } catch (error) {
-    console.error('Error downloading or sharing image:', error);
-    return false;
   }
+  return false;
 };
 
 const FavoritesSectionDisplay = () => {
@@ -117,27 +130,65 @@ const FavoritesSectionDisplay = () => {
     };
 
     try {
-      const shared = await downloadAndShareImage(favorite.url, shareData);
+      const { file, blob } = await prepareImageForSharing(favorite.url);
 
-      if (!shared) {
-        // Fall back to traditional sharing methods
-        switch (platform) {
-          case 'whatsapp':
-            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareData.text} ${favorite.url}`)}`, '_blank');
-            break;
-          case 'facebook':
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(favorite.url)}`, '_blank');
-            break;
-          case 'twitter':
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareData.text}`)}&url=${encodeURIComponent(favorite.url)}`, '_blank');
-            break;
-          case 'copy':
+      if (!file || !blob) {
+        throw new Error('Failed to prepare image');
+      }
+
+      // Try native sharing first
+      if (platform !== 'copy') {
+        const shared = await shareWithNativeAPI({ ...shareData, file });
+        if (shared) {
+          setShareMenuOpen(null);
+          setIsSharing(false);
+          return;
+        }
+      }
+
+      // Platform-specific sharing as fallback
+      switch (platform) {
+        case 'whatsapp': {
+          // Create a temporary URL for the blob
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareData.text}`)}&image=${encodeURIComponent(blobUrl)}`, '_blank');
+          // Clean up the URL after a delay
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+          break;
+        }
+        case 'facebook': {
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(blobUrl)}`, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+          break;
+        }
+        case 'twitter': {
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareData.text)}&url=${encodeURIComponent(blobUrl)}`, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+          break;
+        }
+        case 'copy': {
+          try {
+            // Try to copy the image to clipboard
+            await navigator.clipboard.write([
+              new ClipboardItem({
+                [blob.type]: blob
+              })
+            ]);
+            toast({
+              title: "Copied to clipboard!",
+              description: "The cat image has been copied to your clipboard.",
+            });
+          } catch (clipboardError) {
+            // Fall back to copying URL if image copy fails
             await navigator.clipboard.writeText(favorite.url);
             toast({
               title: "Copied to clipboard!",
-              description: "The cat image URL has been copied to your clipboard.",
+              description: "The cat image URL has been copied to your clipboard (image copying not supported in this browser).",
             });
-            break;
+          }
+          break;
         }
       }
     } catch (error) {
