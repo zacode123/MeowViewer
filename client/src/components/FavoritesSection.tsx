@@ -70,10 +70,31 @@ export const FavoritesProvider = ({ children }: { children: React.ReactNode }) =
   );
 };
 
+const downloadAndShareImage = async (imageUrl: string, shareData: { title: string; text: string }) => {
+  try {
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+    const file = new File([blob], 'cat.jpg', { type: 'image/jpeg' });
+
+    if (navigator.share && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        ...shareData,
+        files: [file],
+      });
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error downloading or sharing image:', error);
+    return false;
+  }
+};
+
 const FavoritesSectionDisplay = () => {
   const { favorites, removeFavorite } = useFavorites();
   const [isExpanded, setIsExpanded] = useState(false);
   const [shareMenuOpen, setShareMenuOpen] = useState<string | null>(null);
+  const [isSharing, setIsSharing] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -87,6 +108,50 @@ const FavoritesSectionDisplay = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleShare = async (favorite: CatImage, platform: 'whatsapp' | 'facebook' | 'twitter' | 'copy') => {
+    setIsSharing(true);
+    const shareData = {
+      title: 'Check out this cute cat!',
+      text: 'Found this adorable cat on MeowViewer!',
+    };
+
+    try {
+      const shared = await downloadAndShareImage(favorite.url, shareData);
+
+      if (!shared) {
+        // Fall back to traditional sharing methods
+        switch (platform) {
+          case 'whatsapp':
+            window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareData.text} ${favorite.url}`)}`, '_blank');
+            break;
+          case 'facebook':
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(favorite.url)}`, '_blank');
+            break;
+          case 'twitter':
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareData.text}`)}&url=${encodeURIComponent(favorite.url)}`, '_blank');
+            break;
+          case 'copy':
+            await navigator.clipboard.writeText(favorite.url);
+            toast({
+              title: "Copied to clipboard!",
+              description: "The cat image URL has been copied to your clipboard.",
+            });
+            break;
+        }
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast({
+        title: "Error sharing",
+        description: "Failed to share the image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSharing(false);
+      setShareMenuOpen(null);
+    }
+  };
 
   if (favorites.length === 0) {
     return null;
@@ -134,6 +199,7 @@ const FavoritesSectionDisplay = () => {
                     e.stopPropagation();
                     setShareMenuOpen(shareMenuOpen === favorite.id ? null : favorite.id);
                   }}
+                  disabled={isSharing}
                 >
                   <Share2 className="h-3 w-3" />
                 </Button>
@@ -163,8 +229,9 @@ const FavoritesSectionDisplay = () => {
                       className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.open(`https://api.whatsapp.com/send?text=Check out this cute cat! ${favorite.url}`, '_blank');
+                        handleShare(favorite, 'whatsapp');
                       }}
+                      disabled={isSharing}
                     >
                       <BsWhatsapp className="mr-2 h-5 w-5" /> WhatsApp
                     </Button>
@@ -173,8 +240,9 @@ const FavoritesSectionDisplay = () => {
                       className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${favorite.url}`, '_blank');
+                        handleShare(favorite, 'facebook');
                       }}
+                      disabled={isSharing}
                     >
                       <BsFacebook className="mr-2 h-5 w-5" /> Facebook
                     </Button>
@@ -183,8 +251,9 @@ const FavoritesSectionDisplay = () => {
                       className="w-full justify-start text-black hover:bg-gray-100" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.open(`https://twitter.com/intent/tweet?url=${favorite.url}&text=Check out this cute cat!`, '_blank');
+                        handleShare(favorite, 'twitter');
                       }}
+                      disabled={isSharing}
                     >
                       <BsTwitterX className="mr-2 h-5 w-5" /> Twitter
                     </Button>
@@ -193,12 +262,9 @@ const FavoritesSectionDisplay = () => {
                       className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigator.clipboard.writeText(favorite.url);
-                        toast({
-                          title: "Copied to clipboard!",
-                          description: "The cat image URL has been copied to your clipboard.",
-                        });
+                        handleShare(favorite, 'copy');
                       }}
+                      disabled={isSharing}
                     >
                       <BsLink45Deg className="mr-2 h-5 w-5" /> Copy Link
                     </Button>
@@ -213,5 +279,4 @@ const FavoritesSectionDisplay = () => {
   );
 };
 
-// Export the FavoritesSectionDisplay component as the default export
 export default FavoritesSectionDisplay;
