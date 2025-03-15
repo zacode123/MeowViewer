@@ -222,19 +222,26 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
                 variant="ghost"
                 className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
                 onClick={() => handleShare('native')}
+                disabled={isSharing}
               >
-                <Share2 className="mr-2 h-5 w-5" /> Share
+                {isSharing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Share2 className="mr-2 h-5 w-5" />} Share
               </Button>
               <Button
                 variant="ghost"
                 className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
                 onClick={() => handleShare('copy')}
+                disabled={isSharing}
               >
-                <BsLink45Deg className="mr-2 h-5 w-5" /> Copy
+                {isSharing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <BsLink45Deg className="mr-2 h-5 w-5" />} Copy
               </Button>
               <Button
                 variant="ghost"
                 className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
+                onClick={() => handleShare('download')}
+                disabled={isSharing}
+              >
+                {isSharing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />} Download
+              </Button>50"
                 onClick={() => handleShare('download')}
               >
                 <Download className="mr-2 h-5 w-5" /> Download
