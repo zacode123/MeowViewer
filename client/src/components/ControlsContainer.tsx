@@ -3,6 +3,8 @@ import { Share2, Loader2, X, Download } from "lucide-react";
 import { BsWhatsapp, BsFacebook, BsTwitterX, BsLink45Deg } from "react-icons/bs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { CatImage } from "@shared/schema";
+import { useFavorites } from "./FavoritesSection";
 
 // Helper function to fetch and prepare image for sharing
 const prepareImageForSharing = async (imageUrl: string): Promise<{file?: File, blob?: Blob}> => {
@@ -14,11 +16,9 @@ const prepareImageForSharing = async (imageUrl: string): Promise<{file?: File, b
     return { file, blob };
   } catch (error) {
     console.error('Error preparing image:', error);
-    throw new Error('Failed to prepare image for sharing');
+    throw new Error('Failed to prepare image');
   }
 };
-import { CatImage } from "@shared/schema";
-import { useFavorites } from "./FavoritesSection";
 
 interface ControlsContainerProps {
   onNewCat: () => void;
@@ -28,6 +28,7 @@ interface ControlsContainerProps {
 
 const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerProps) => {
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
+  const [isSharing, setIsSharing] = useState(false); // Added isSharing state
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isFavorite, addFavorite, removeFavorite } = useFavorites();
@@ -46,12 +47,14 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
   }, []);
 
   const handleShare = async (type: 'native' | 'copy' | 'download') => {
+    setIsSharing(true); // Set isSharing to true before sharing
     if (!catImage) return;
 
     if (type === 'download') {
       const downloadUrl = `/api/proxy-image?url=${encodeURIComponent(catImage.url)}&download=true`;
       window.location.href = downloadUrl;
       setIsShareMenuOpen(false);
+      setIsSharing(false); // Set isSharing to false after download
       return;
     }
 
@@ -78,6 +81,7 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
             files: [file],
           });
           setIsShareMenuOpen(false);
+          setIsSharing(false); // Set isSharing to false after native share
           return;
         } catch (error) {
           if (error instanceof Error && error.name !== 'AbortError') {
@@ -113,8 +117,10 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage }: ControlsContainerP
         description: "Failed to share the image. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSharing(false); // Ensure isSharing is set to false in the finally block
+      setIsShareMenuOpen(false);
     }
-    setIsShareMenuOpen(false);
   };
 
   const toggleFavorite = () => {
