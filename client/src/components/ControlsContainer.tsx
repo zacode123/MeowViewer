@@ -3,6 +3,20 @@ import { Share2, Loader2, X, Download } from "lucide-react";
 import { BsWhatsapp, BsFacebook, BsTwitterX, BsLink45Deg } from "react-icons/bs";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+
+// Helper function to fetch and prepare image for sharing
+const prepareImageForSharing = async (imageUrl: string): Promise<{file?: File, blob?: Blob}> => {
+  try {
+    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+    const response = await fetch(proxyUrl);
+    const blob = await response.blob();
+    const file = new File([blob], 'cat.jpg', { type: 'image/jpeg' });
+    return { file, blob };
+  } catch (error) {
+    console.error('Error preparing image:', error);
+    throw new Error('Failed to prepare image for sharing');
+  }
+};
 import { CatImage } from "@shared/schema";
 import { useFavorites } from "./FavoritesSection";
 
