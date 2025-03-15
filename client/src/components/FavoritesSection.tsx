@@ -4,6 +4,12 @@ import { X, Heart, Share2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BsWhatsapp, BsFacebook, BsTwitterX, BsLink45Deg } from "react-icons/bs";
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Create a context for favorites management
 export const FavoritesContext = createContext<{
@@ -105,24 +111,86 @@ const shareWithNativeAPI = async (shareData: { title: string; text: string; file
   return false;
 };
 
+const SharePreviewDialog = ({ 
+  isOpen, 
+  onClose, 
+  favorite,
+  onShare,
+  isSharing
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  favorite: CatImage;
+  onShare: (platform: 'whatsapp' | 'facebook' | 'twitter' | 'copy') => void;
+  isSharing: boolean;
+}) => {
+  return (
+    <Dialog open={isOpen} onOpenChange={() => onClose()}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Share this adorable cat</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <div className="relative aspect-square w-full overflow-hidden rounded-lg">
+            <img 
+              src={favorite.url} 
+              alt="Cat to share" 
+              className="object-cover w-full h-full"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={() => onShare('whatsapp')}
+              disabled={isSharing}
+            >
+              <BsWhatsapp className="mr-2 h-5 w-5" /> Share to WhatsApp
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              onClick={() => onShare('facebook')}
+              disabled={isSharing}
+            >
+              <BsFacebook className="mr-2 h-5 w-5" /> Share to Facebook
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start text-black hover:bg-gray-100"
+              onClick={() => onShare('twitter')}
+              disabled={isSharing}
+            >
+              <BsTwitterX className="mr-2 h-5 w-5" /> Share to Twitter
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
+              onClick={() => onShare('copy')}
+              disabled={isSharing}
+            >
+              <BsLink45Deg className="mr-2 h-5 w-5" /> Copy to Clipboard
+            </Button>
+          </div>
+          {isSharing && (
+            <div className="flex items-center justify-center text-sm text-gray-500">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Preparing to share...
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const FavoritesSectionDisplay = () => {
   const { favorites, removeFavorite } = useFavorites();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [shareMenuOpen, setShareMenuOpen] = useState<string | null>(null);
+  const [sharePreviewOpen, setSharePreviewOpen] = useState(false);
+  const [selectedFavorite, setSelectedFavorite] = useState<CatImage | null>(null);
   const [isSharing, setIsSharing] = useState(false);
-  const shareMenuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (shareMenuRef.current && !shareMenuRef.current.contains(event.target as Node)) {
-        setShareMenuOpen(null);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const handleShare = async (favorite: CatImage, platform: 'whatsapp' | 'facebook' | 'twitter' | 'copy') => {
     setIsSharing(true);
@@ -142,7 +210,7 @@ const FavoritesSectionDisplay = () => {
       if (platform !== 'copy') {
         const shared = await shareWithNativeAPI({ ...shareData, file });
         if (shared) {
-          setShareMenuOpen(null);
+          setSharePreviewOpen(false);
           setIsSharing(false);
           return;
         }
@@ -151,10 +219,8 @@ const FavoritesSectionDisplay = () => {
       // Platform-specific sharing as fallback
       switch (platform) {
         case 'whatsapp': {
-          // Create a temporary URL for the blob
           const blobUrl = URL.createObjectURL(blob);
           window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareData.text}`)}&image=${encodeURIComponent(blobUrl)}`, '_blank');
-          // Clean up the URL after a delay
           setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
           break;
         }
@@ -172,7 +238,6 @@ const FavoritesSectionDisplay = () => {
         }
         case 'copy': {
           try {
-            // Try to copy the image to clipboard
             await navigator.clipboard.write([
               new ClipboardItem({
                 [blob.type]: blob
@@ -183,7 +248,6 @@ const FavoritesSectionDisplay = () => {
               description: "The cat image has been copied to your clipboard.",
             });
           } catch (clipboardError) {
-            // Fall back to copying URL if image copy fails
             await navigator.clipboard.writeText(favorite.url);
             toast({
               title: "Copied to clipboard!",
@@ -202,7 +266,7 @@ const FavoritesSectionDisplay = () => {
       });
     } finally {
       setIsSharing(false);
-      setShareMenuOpen(null);
+      setSharePreviewOpen(false);
     }
   };
 
@@ -250,83 +314,30 @@ const FavoritesSectionDisplay = () => {
                   className="h-6 w-6 bg-[#FF4081] hover:bg-[#FF4081]/90 text-white rounded-full p-1"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setShareMenuOpen(shareMenuOpen === favorite.id ? null : favorite.id);
+                    setSelectedFavorite(favorite);
+                    setSharePreviewOpen(true);
                   }}
                   disabled={isSharing}
                 >
                   {isSharing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3" />}
                 </Button>
               </div>
-              {shareMenuOpen === favorite.id && (
-                <div 
-                  ref={shareMenuRef}
-                  className="absolute top-8 left-0 z-50 bg-white rounded-lg shadow-lg p-3 w-52 border border-gray-200"
-                >
-                  <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
-                    <h4 className="font-medium text-[#FF4081]">Share via</h4>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7 text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShareMenuOpen(null);
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    <Button 
-                      variant="ghost" 
-                      className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(favorite, 'whatsapp');
-                      }}
-                      disabled={isSharing}
-                    >
-                      <BsWhatsapp className="mr-2 h-5 w-5" /> WhatsApp
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(favorite, 'facebook');
-                      }}
-                      disabled={isSharing}
-                    >
-                      <BsFacebook className="mr-2 h-5 w-5" /> Facebook
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      className="w-full justify-start text-black hover:bg-gray-100" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(favorite, 'twitter');
-                      }}
-                      disabled={isSharing}
-                    >
-                      <BsTwitterX className="mr-2 h-5 w-5" /> Twitter
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(favorite, 'copy');
-                      }}
-                      disabled={isSharing}
-                    >
-                      <BsLink45Deg className="mr-2 h-5 w-5" /> Copy Link
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
           ))}
         </div>
+      )}
+
+      {selectedFavorite && (
+        <SharePreviewDialog
+          isOpen={sharePreviewOpen}
+          onClose={() => {
+            setSharePreviewOpen(false);
+            setSelectedFavorite(null);
+          }}
+          favorite={selectedFavorite}
+          onShare={(platform) => handleShare(selectedFavorite, platform)}
+          isSharing={isSharing}
+        />
       )}
     </div>
   );
