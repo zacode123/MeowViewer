@@ -11,7 +11,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const response = await axios.get("https://api.thecatapi.com/v1/images/search", {
         params: {
           size: "med",     // Medium sized images
-          has_breeds: 1,   // Include breeds info
+          has_breeds: 0,   // Don't need breeds info
           mime_types: "jpg,png" // Only get jpg and png images
         }
       });
@@ -22,8 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         url: catData.url,
         width: catData.width,
         height: catData.height,
-        attribution: "Image from The Cat API",
-        breeds: catData.breeds || []
+        attribution: "Image from The Cat API"
       };
 
       // Validate with our schema
