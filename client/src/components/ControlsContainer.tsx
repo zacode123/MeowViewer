@@ -17,7 +17,7 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
   const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  
+
   // Sync isFavorite with parent component when it changes
   useEffect(() => {
     if (!catImage) return;
@@ -44,7 +44,7 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
         setIsShareMenuOpen(false);
       }
     }
-    
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
@@ -53,7 +53,7 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
 
   const handleCopyToClipboard = () => {
     if (!catImage) return;
-    
+
     navigator.clipboard.writeText(catImage.url)
       .then(() => {
         toast({
@@ -81,49 +81,63 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
       });
       return;
     }
-    
+
     const newFavoriteState = !isFavorite;
-    setIsFavorite(newFavoriteState);
 
     try {
       const storedFavorites = localStorage.getItem('meowviewer-favorites');
       let favorites: CatImage[] = [];
-      
+
       if (storedFavorites) {
         favorites = JSON.parse(storedFavorites);
       }
-      
+
       if (newFavoriteState) {
         // Add to favorites if not already present
         if (!favorites.some(fav => fav.id === catImage.id)) {
           favorites.push(catImage);
+          localStorage.setItem('meowviewer-favorites', JSON.stringify(favorites));
+          setIsFavorite(true); // Update state immediately after successful storage
+
+          // Call the callback function if provided
+          if (onFavoriteChange) {
+            onFavoriteChange(true);
+          }
+
+          toast({
+            title: "Added to favorites",
+            description: "The cat image has been added to your favorites!",
+          });
         }
       } else {
         // Remove from favorites
         favorites = favorites.filter(fav => fav.id !== catImage.id);
-      }
+        localStorage.setItem('meowviewer-favorites', JSON.stringify(favorites));
+        setIsFavorite(false); // Update state immediately after successful storage
 
-      localStorage.setItem('meowviewer-favorites', JSON.stringify(favorites));
-      
-      // Call the callback function if provided
-      if (onFavoriteChange) {
-        onFavoriteChange(newFavoriteState);
+        // Call the callback function if provided
+        if (onFavoriteChange) {
+          onFavoriteChange(false);
+        }
+
+        toast({
+          title: "Removed from favorites",
+          description: "The cat image has been removed from your favorites.",
+        });
       }
     } catch (error) {
       console.error('Error updating favorites in localStorage:', error);
+      toast({
+        title: "Error updating favorites",
+        description: "An error occurred while updating your favorites.",
+        variant: "destructive",
+      });
     }
-    
-    toast({
-      title: newFavoriteState ? "Added to favorites" : "Removed from favorites",
-      description: newFavoriteState 
-        ? "The cat image has been added to your favorites!" 
-        : "The cat image has been removed from your favorites.",
-    });
   };
 
   const shareViaWhatsapp = () => {
     if (!catImage) return;
-    
+
     const text = "Check out this adorable cat from MeowViewer!";
     const url = catImage.url;
     window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + url)}`, "_blank");
@@ -132,14 +146,14 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
 
   const shareViaFacebook = () => {
     if (!catImage) return;
-    
+
     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(catImage.url)}`, "_blank");
     setIsShareMenuOpen(false);
   };
 
   const shareViaTwitter = () => {
     if (!catImage) return;
-    
+
     const text = "Check out this adorable cat from MeowViewer!";
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(catImage.url)}`, "_blank");
     setIsShareMenuOpen(false);
@@ -154,7 +168,7 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
       });
       return;
     }
-    
+
     setIsShareMenuOpen(!isShareMenuOpen);
   };
 
@@ -175,9 +189,9 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
       </Button>
 
       <div className="flex gap-4 relative">
-        <Button 
-          variant="outline" 
-          size="icon" 
+        <Button
+          variant="outline"
+          size="icon"
           className="bg-[#FF4081] hover:bg-[#FF4081]/90 text-white p-3 rounded-full shadow transition duration-200"
           aria-label="Share cat image"
           onClick={toggleShareMenu}
@@ -187,46 +201,46 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
         </Button>
 
         {isShareMenuOpen && (
-          <div 
+          <div
             ref={shareMenuRef}
             className="absolute top-12 right-0 z-50 bg-white rounded-lg shadow-lg p-3 w-52 border border-gray-200"
           >
             <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-100">
               <h4 className="font-medium text-[#FF4081]">Share via</h4>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-7 w-7 text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50" 
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
                 onClick={() => setIsShareMenuOpen(false)}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
             <div className="space-y-2">
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50" 
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-green-600 hover:text-green-700 hover:bg-green-50"
                 onClick={shareViaWhatsapp}
               >
                 <BsWhatsapp className="mr-2 h-5 w-5" /> WhatsApp
               </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50" 
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                 onClick={shareViaFacebook}
               >
                 <BsFacebook className="mr-2 h-5 w-5" /> Facebook
               </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-black hover:bg-gray-100" 
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-black hover:bg-gray-100"
                 onClick={shareViaTwitter}
               >
                 <BsTwitterX className="mr-2 h-5 w-5" /> Twitter
               </Button>
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50" 
+              <Button
+                variant="ghost"
+                className="w-full justify-start text-[#FF4081] hover:text-[#FF4081]/80 hover:bg-pink-50"
                 onClick={handleCopyToClipboard}
               >
                 <BsLink45Deg className="mr-2 h-5 w-5" /> Copy Link
@@ -235,9 +249,9 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
           </div>
         )}
 
-        <Button 
-          variant="outline" 
-          size="icon" 
+        <Button
+          variant="outline"
+          size="icon"
           className={`
             bg-[#FF4081] hover:bg-[#FF4081]/90 text-white 
             p-3 rounded-full shadow transition duration-200
@@ -247,9 +261,9 @@ const ControlsContainer = ({ onNewCat, isLoading, catImage, onFavoriteChange }: 
           disabled={isLoading || !catImage}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-5">
-            <path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z" 
-            fill={isFavorite ? "white" : "none"} 
-            stroke="white" 
+            <path d="M12,21.35L10.55,20.03C5.4,15.36 2,12.27 2,8.5C2,5.41 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.08C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.41 22,8.5C22,12.27 18.6,15.36 13.45,20.03L12,21.35Z"
+            fill={isFavorite ? "white" : "none"}
+            stroke="white"
             strokeWidth={isFavorite ? "0" : "2"} />
           </svg>
         </Button>
