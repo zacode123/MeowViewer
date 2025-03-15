@@ -35,10 +35,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Image proxy route
+  // Image proxy route with improved headers for sharing and downloading
   app.get("/api/proxy-image", async (req, res) => {
     try {
       const imageUrl = req.query.url as string;
+      const download = req.query.download === 'true';
+
       if (!imageUrl) {
         return res.status(400).json({ message: "Image URL is required" });
       }
@@ -50,10 +52,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set appropriate headers
       res.set('Content-Type', response.headers['content-type']);
       res.set('Access-Control-Allow-Origin', '*');
+
+      // If download parameter is present, set Content-Disposition
+      if (download) {
+        res.set('Content-Disposition', 'attachment; filename="cat.jpg"');
+      } else {
+        res.set('Content-Disposition', 'inline');
+      }
+
       res.send(response.data);
     } catch (error) {
       console.error("Error proxying image:", error);
       res.status(500).json({ message: "Failed to proxy image" });
+    }
+  });
+
+  // Get URL for sharing
+  app.get("/api/share-url", async (req, res) => {
+    try {
+      const imageUrl = req.query.url as string;
+      if (!imageUrl) {
+        return res.status(400).json({ message: "Image URL is required" });
+      }
+
+      // Get the host URL from the request
+      const protocol = req.protocol;
+      const host = req.get('host');
+      const shareUrl = `${protocol}://${host}/api/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+
+      res.json({ shareUrl });
+    } catch (error) {
+      console.error("Error generating share URL:", error);
+      res.status(500).json({ message: "Failed to generate share URL" });
     }
   });
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { CatImage } from '@shared/schema';
-import { X, Heart, Share2, Loader2 } from 'lucide-react';
+import { X, Heart, Share2, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BsWhatsapp, BsFacebook, BsTwitterX, BsLink45Deg } from "react-icons/bs";
 import { useToast } from '@/hooks/use-toast';
@@ -100,7 +100,7 @@ const SharePreviewDialog = ({
   isOpen: boolean; 
   onClose: () => void; 
   favorite: CatImage;
-  onShare: (platform: 'whatsapp' | 'facebook' | 'twitter' | 'copy') => void;
+  onShare: (platform: 'whatsapp' | 'facebook' | 'twitter' | 'copy' | 'download') => void;
   isSharing: boolean;
 }) => {
   const [isImageLoading, setIsImageLoading] = useState(true);
@@ -111,7 +111,6 @@ const SharePreviewDialog = ({
       setIsImageLoading(true);
       const loadImage = async () => {
         try {
-          // Use our proxy to avoid CORS issues
           const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(favorite.url)}`;
           const response = await fetch(proxyUrl);
           const blob = await response.blob();
@@ -125,7 +124,6 @@ const SharePreviewDialog = ({
       };
       loadImage();
     } else {
-      // Cleanup when dialog closes
       if (previewImage) {
         URL.revokeObjectURL(previewImage);
       }
@@ -206,6 +204,15 @@ const SharePreviewDialog = ({
                 <span className="text-xs text-gray-500">Copy to clipboard</span>
               </div>
             </Button>
+            <Button
+              variant="outline"
+              className="w-full col-span-2 justify-center text-purple-600 hover:text-purple-700 hover:bg-purple-50 p-4"
+              onClick={() => onShare('download')}
+              disabled={isSharing || isImageLoading}
+            >
+              <Download className="mr-2 h-5 w-5" /> 
+              <span className="font-semibold">Download Image</span>
+            </Button>
           </div>
           {isSharing && (
             <div className="mt-4 flex items-center justify-center text-sm text-gray-500">
@@ -227,7 +234,7 @@ const FavoritesSectionDisplay = () => {
   const [isSharing, setIsSharing] = useState(false);
   const { toast } = useToast();
 
-  const handleShare = async (favorite: CatImage, platform: 'whatsapp' | 'facebook' | 'twitter' | 'copy') => {
+  const handleShare = async (favorite: CatImage, platform: 'whatsapp' | 'facebook' | 'twitter' | 'copy' | 'download') => {
     setIsSharing(true);
     const shareData = {
       title: 'Check out this adorable cat!',
@@ -235,6 +242,19 @@ const FavoritesSectionDisplay = () => {
     };
 
     try {
+      // Get share URL from our API
+      const shareUrlResponse = await fetch(`/api/share-url?url=${encodeURIComponent(favorite.url)}`);
+      const { shareUrl } = await shareUrlResponse.json();
+
+      if (platform === 'download') {
+        // For download, use the proxy endpoint with download parameter
+        const downloadUrl = `/api/proxy-image?url=${encodeURIComponent(favorite.url)}&download=true`;
+        window.location.href = downloadUrl;
+        setIsSharing(false);
+        setSharePreviewOpen(false);
+        return;
+      }
+
       const { file, blob } = await prepareImageForSharing(favorite.url);
 
       if (!file || !blob) {
@@ -247,6 +267,7 @@ const FavoritesSectionDisplay = () => {
           await navigator.share({
             title: shareData.title,
             text: shareData.text,
+            url: shareUrl,
             files: [file],
           });
           setSharePreviewOpen(false);
@@ -262,22 +283,13 @@ const FavoritesSectionDisplay = () => {
       // Platform-specific sharing as fallback
       switch (platform) {
         case 'whatsapp':
-          const whatsappFormData = new FormData();
-          whatsappFormData.append('text', shareData.text);
-          whatsappFormData.append('image', file);
-          // Note: WhatsApp Web API doesn't directly support file uploads
-          // We'll use the URL as fallback
-          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareData.text}\n${favorite.url}`)}`, '_blank');
+          window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareData.text}\n${shareUrl}`)}`, '_blank');
           break;
         case 'facebook':
-          // Facebook requires a server-side implementation to handle file uploads
-          // Fallback to URL sharing
-          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(favorite.url)}&quote=${encodeURIComponent(shareData.text)}`, '_blank');
+          window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareData.text)}`, '_blank');
           break;
         case 'twitter':
-          // Twitter API v2 requires authentication
-          // Fallback to URL sharing
-          window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareData.text}\n${favorite.url}`)}`, '_blank');
+          window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`${shareData.text}\n${shareUrl}`)}`, '_blank');
           break;
         case 'copy':
           try {
@@ -291,7 +303,7 @@ const FavoritesSectionDisplay = () => {
               description: "The cat image has been copied to your clipboard.",
             });
           } catch (clipboardError) {
-            await navigator.clipboard.writeText(`${shareData.text}\n${favorite.url}`);
+            await navigator.clipboard.writeText(`${shareData.text}\n${shareUrl}`);
             toast({
               title: "Copied to clipboard!",
               description: "The cat image URL has been copied to your clipboard (image copying not supported in this browser).",
