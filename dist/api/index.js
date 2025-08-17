@@ -1,8 +1,11 @@
-import express from "express";
-import axios from "axios";
-import { z } from "zod";
+const express = require("express");
+const axios = require("axios");
+const path = require("path");
+const { z } = require("zod");  
 
-// Validation schema (from drizzle/zod)
+const app = express();
+const PORT = process.env.PORT || 5000;
+
 const catImageSchema = z.object({
   id: z.string(),
   url: z.string().url(),
@@ -11,15 +14,14 @@ const catImageSchema = z.object({
   attribution: z.string().optional()
 });
 
-const app = express();
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Serve static frontend
-app.use(express.static("public"));
+app.get("/api/cat", async (_req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
-// --- API routes ---
 app.get("/api/cat", async (_req, res) => {
   try {
     const response = await axios.get("https://api.thecatapi.com/v1/images/search", {
@@ -63,8 +65,6 @@ app.get("/api/share-url", (req, res) => {
   res.json({ shareUrl });
 });
 
-// --- Start server ---
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, "0.0.0.0", () => {
+app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
